@@ -15,6 +15,16 @@ export type Theme = {
   /** Colours used for the decorations. */
   decoColors: string[];
   deco: Deco;
+  /** Small line printed at the bottom of the strip. */
+  stripLabel: string;
+  /** Colours for the whole booth screen. */
+  ui: {
+    page: string;
+    panel: string;
+    ink: string;
+    accent: string;
+    accentDark: string;
+  };
 };
 
 export const THEMES: Theme[] = [
@@ -28,6 +38,14 @@ export const THEMES: Theme[] = [
     text: "#b0005a",
     decoColors: ["#ff4fa3", "#ffffff", "#ff9bd0"],
     deco: "hearts",
+    stripLabel: "Bubblegum edition · pop!",
+    ui: {
+      page: "linear-gradient(160deg, #ffe6f2 0%, #ffc4e1 55%, #ff9fcf 100%)",
+      panel: "rgba(255,255,255,0.8)",
+      ink: "#4a0a2c",
+      accent: "#ff4fa3",
+      accentDark: "#b8146a",
+    },
   },
   {
     id: "y2k",
@@ -39,6 +57,14 @@ export const THEMES: Theme[] = [
     text: "#4b1a8c",
     decoColors: ["#ffffff", "#ffe36e", "#ff7ad9"],
     deco: "sparkles",
+    stripLabel: "Y2K Glitter edition · totally iconic",
+    ui: {
+      page: "linear-gradient(135deg, #fbe3ff 0%, #d9c6ff 45%, #9fd8ff 100%)",
+      panel: "rgba(255,255,255,0.72)",
+      ink: "#36125f",
+      accent: "#b05cff",
+      accentDark: "#5b1fa8",
+    },
   },
   {
     id: "sakura",
@@ -50,6 +76,14 @@ export const THEMES: Theme[] = [
     text: "#c2416b",
     decoColors: ["#ffb3c9", "#ff8fb1", "#ffe0ea"],
     deco: "petals",
+    stripLabel: "Cherry Blossom edition · spring forever",
+    ui: {
+      page: "linear-gradient(170deg, #fff6f9 0%, #ffe0ea 50%, #ffc9da 100%)",
+      panel: "rgba(255,255,255,0.85)",
+      ink: "#6b1d3a",
+      accent: "#e86a92",
+      accentDark: "#a8345a",
+    },
   },
   {
     id: "arcade",
@@ -61,6 +95,14 @@ export const THEMES: Theme[] = [
     text: "#ffe600",
     decoColors: ["#00f0ff", "#ffe600", "#ff2e88"],
     deco: "pixels",
+    stripLabel: "Retro Arcade edition · GAME ON",
+    ui: {
+      page: "radial-gradient(circle at 50% 0%, #5a1470 0%, #240833 55%, #12031c 100%)",
+      panel: "rgba(40, 8, 56, 0.85)",
+      ink: "#ffe600",
+      accent: "#ff2e88",
+      accentDark: "#00c8d6",
+    },
   },
   {
     id: "strawberry",
@@ -72,6 +114,14 @@ export const THEMES: Theme[] = [
     text: "#e0436f",
     decoColors: ["#ff6f91", "#ffffff", "#ffc4d3"],
     deco: "bubbles",
+    stripLabel: "Strawberry Milk edition · extra sweet",
+    ui: {
+      page: "linear-gradient(180deg, #fffafc 0%, #ffe3ec 50%, #ffc7d6 100%)",
+      panel: "rgba(255,255,255,0.85)",
+      ink: "#7a1734",
+      accent: "#ff6f91",
+      accentDark: "#c43a5e",
+    },
   },
   {
     id: "midnight",
@@ -83,6 +133,14 @@ export const THEMES: Theme[] = [
     text: "#ffb3dd",
     decoColors: ["#ff7ac4", "#ffffff", "#c86bff"],
     deco: "stars",
+    stripLabel: "Midnight Kiss edition · after hours",
+    ui: {
+      page: "radial-gradient(circle at 30% 20%, #4a1340 0%, #1f0a24 50%, #0d0410 100%)",
+      panel: "rgba(36, 12, 40, 0.82)",
+      ink: "#ffd1ec",
+      accent: "#ff7ac4",
+      accentDark: "#c86bff",
+    },
   },
 ];
 

@@ -6,7 +6,11 @@ import { buildStrip, captureFrame } from "@/lib/canvas";
 import { setMuted, sfx } from "@/lib/sound";
 import { MAX_PLAYERS, useRoom, type RoomMessage } from "@/lib/useRoom";
 import { body, pixel } from "@/lib/fonts";
+import { FACE_FILTERS, type FaceFilterId } from "@/lib/faces";
+import { recordStrip } from "@/lib/stats";
 import StageDeco from "./StageDeco";
+import ThemeFX, { ThemeBanner } from "./ThemeFX";
+import FaceLayer from "./FaceLayer";
 import Result from "./Result";
 
 export type BoothMode = "solo" | "host" | "join";
@@ -19,6 +23,14 @@ type Props = {
 };
 
 const TIMERS = [0, 3, 5, 10];
+const GLYPHS: Record<string, string> = {
+  hearts: "♥",
+  sparkles: "✦",
+  petals: "❀",
+  pixels: "■",
+  bubbles: "○",
+  stars: "★",
+};
 const SHOTS = [1, 3, 4];
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -37,6 +49,8 @@ export default function Booth({ mode, name, joinCode, onExit }: Props) {
   const [gallery, setGallery] = useState<string[]>([]);
   const [muted, setMute] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [faceId, setFaceId] = useState<FaceFilterId>("none");
+  const [links, setLinks] = useState<Record<string, string>>({});
 
   const stageRef = useRef<HTMLDivElement>(null);
   const localVideo = useRef<HTMLVideoElement>(null);
@@ -59,6 +73,7 @@ export default function Booth({ mode, name, joinCode, onExit }: Props) {
       setShotTotal(total);
       const frames: HTMLCanvasElement[] = [];
       const current = getTheme(themeRef.current);
+      let videos: HTMLVideoElement[] = [];
 
       for (let i = 0; i < total; i++) {
         setShotNo(i + 1);
@@ -73,7 +88,7 @@ export default function Booth({ mode, name, joinCode, onExit }: Props) {
         setCount(null);
         setFlash(true);
         sfx.shutter();
-        const videos = Array.from(stageRef.current?.querySelectorAll<HTMLVideoElement>("video[data-cam]") ?? []);
+        videos = Array.from(stageRef.current?.querySelectorAll<HTMLVideoElement>("video[data-cam]") ?? []);
         frames.push(captureFrame(videos, current));
         await sleep(220);
         setFlash(false);
@@ -90,6 +105,7 @@ export default function Booth({ mode, name, joinCode, onExit }: Props) {
         bodyFont: body.style.fontFamily,
       });
       sfx.done();
+      recordStrip(total, Math.max(1, videos.length));
       setStrip(url);
       setGallery((g) => [url, ...g].slice(0, 12));
       setShotNo(0);
@@ -169,7 +185,22 @@ export default function Booth({ mode, name, joinCode, onExit }: Props) {
 
   useEffect(() => () => room.leave(), [room.leave]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // the whole page takes on the theme colours
+  useEffect(() => {
+    document.body.style.background = theme.ui.page;
+    document.body.style.backgroundAttachment = "fixed";
+    return () => {
+      document.body.style.background = "";
+    };
+  }, [theme.ui.page]);
+
   // ----- actions -----
+  const pickFace = (id: FaceFilterId) => {
+    sfx.move();
+    setFaceId(id);
+    if (online) room.setFace(id);
+  };
+
   const pickTheme = (id: string) => {
     if (busy) return;
     sfx.move();
@@ -209,7 +240,19 @@ export default function Booth({ mode, name, joinCode, onExit }: Props) {
   };
 
   return (
-    <section className="booth" style={{ ["--accent" as string]: theme.decoColors[0], ["--bg0" as string]: theme.bg[0], ["--bg1" as string]: theme.bg[1] }}>
+    <section
+      className={`booth booth-${theme.id}`}
+      style={{
+        ["--accent" as string]: theme.ui.accent,
+        ["--accent-dark" as string]: theme.ui.accentDark,
+        ["--ink" as string]: theme.ui.ink,
+        ["--panel" as string]: theme.ui.panel,
+        ["--frame" as string]: theme.frame,
+        ["--bg0" as string]: theme.bg[0],
+        ["--bg1" as string]: theme.bg[1],
+        color: theme.ui.ink,
+      }}
+    >
       <header className="booth-bar">
         <button className="btn btn-ghost" onClick={onExit} disabled={busy}>
           ← MENU
@@ -272,6 +315,7 @@ export default function Booth({ mode, name, joinCode, onExit }: Props) {
               <video
                 ref={localVideo}
                 data-cam
+                data-face={faceId}
                 autoPlay
                 playsInline
                 muted
@@ -280,10 +324,13 @@ export default function Booth({ mode, name, joinCode, onExit }: Props) {
               <span className="cam-name">{name || "you"}</span>
             </div>
             {remoteList.slice(0, MAX_PLAYERS - 1).map((r) => (
-              <RemoteCam key={r.id} stream={r.stream} name={r.name} filter={theme.filter} />
+              <RemoteCam key={r.id} stream={r.stream} name={r.name} face={r.face ?? "none"} filter={theme.filter} />
             ))}
 
             <StageDeco theme={theme} />
+            <ThemeFX theme={theme} />
+            <FaceLayer stageRef={stageRef} active={faceId !== "none" || remoteList.some((r) => r.face && r.face !== "none")} />
+            <ThemeBanner theme={theme} />
 
             {!stream && (
               <div className="stage-msg">
@@ -325,13 +372,36 @@ export default function Booth({ mode, name, joinCode, onExit }: Props) {
                   onClick={() => pickTheme(t.id)}
                   disabled={busy}
                 >
-                  <span className="swatch" style={{ background: `linear-gradient(135deg, ${t.bg[0]}, ${t.bg[1]})` }}>
-                    <span style={{ background: t.decoColors[0] }} />
+                  <span
+                    className="mini-strip"
+                    style={{ background: `linear-gradient(180deg, ${t.bg[0]}, ${t.bg[1]})`, borderColor: t.frame }}
+                  >
+                    {[0, 1, 2].map((k) => (
+                      <i key={k} style={{ borderColor: t.frame, filter: t.filter }} />
+                    ))}
+                    <em style={{ color: t.decoColors[0] }}>{GLYPHS[t.deco]}</em>
                   </span>
                   <span className="theme-text">
                     <b>{t.name}</b>
                     <small>{t.tagline}</small>
                   </span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="panel-block">
+            <h3 className="pixel panel-h">FACE FILTER</h3>
+            <div className="faces">
+              {FACE_FILTERS.map((f) => (
+                <button
+                  key={f.id}
+                  className={`face-chip ${faceId === f.id ? "active" : ""}`}
+                  onClick={() => pickFace(f.id)}
+                  disabled={busy}
+                >
+                  <span className={`face-icon face-icon-${f.id}`} aria-hidden />
+                  {f.name}
                 </button>
               ))}
             </div>
@@ -397,19 +467,30 @@ export default function Booth({ mode, name, joinCode, onExit }: Props) {
         </aside>
       </div>
 
-      {strip && <Result src={strip} onClose={() => setStrip(null)} onAgain={() => { setStrip(null); shoot(); }} />}
+      {strip && (
+        <Result
+          src={strip}
+          link={links[strip]}
+          onLink={(url) => setLinks((l) => ({ ...l, [strip]: url }))}
+          onClose={() => setStrip(null)}
+          onAgain={() => {
+            setStrip(null);
+            shoot();
+          }}
+        />
+      )}
     </section>
   );
 }
 
-function RemoteCam({ stream, name, filter }: { stream?: MediaStream; name: string; filter: string }) {
+function RemoteCam({ stream, name, face, filter }: { stream?: MediaStream; name: string; face: string; filter: string }) {
   const ref = useRef<HTMLVideoElement>(null);
   useEffect(() => {
     if (ref.current && stream) ref.current.srcObject = stream;
   }, [stream]);
   return (
     <div className="cam">
-      <video ref={ref} data-cam autoPlay playsInline muted style={{ filter }} />
+      <video ref={ref} data-cam data-face={face} autoPlay playsInline muted style={{ filter }} />
       {!stream && <div className="cam-wait pixel blink">JOINING…</div>}
       <span className="cam-name">{name}</span>
     </div>

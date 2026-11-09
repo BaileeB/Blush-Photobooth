@@ -5,7 +5,8 @@ export const setMuted = (m: boolean) => {
   muted = m;
 };
 
-function ac() {
+/** Shared audio context for sound effects and music. */
+export function ac() {
   if (typeof window === "undefined") return null;
   if (!ctx) {
     const AC = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
