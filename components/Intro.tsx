@@ -2,17 +2,23 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { sfx } from "@/lib/sound";
+import { getStats, type Stats } from "@/lib/stats";
 
 type Props = {
   hasInvite: boolean;
   onSolo: () => void;
   onFriends: () => void;
+  onReplay: () => void;
 };
 
-const ITEMS = ["SOLO MODE", "PLAY WITH FRIENDS", "HOW TO PLAY"] as const;
+const ITEMS = ["SOLO MODE", "PLAY WITH FRIENDS", "HOW TO PLAY", "WATCH INTRO"] as const;
 
-export default function Intro({ hasInvite, onSolo, onFriends }: Props) {
-  const [started, setStarted] = useState(false);
+export default function Intro({ hasInvite, onSolo, onFriends, onReplay }: Props) {
+  // the intro gate already counts as pressing start
+  const [started, setStarted] = useState(true);
+  const [stats, setStats] = useState<Stats | null>(null);
+
+  useEffect(() => setStats(getStats()), []);
   const [cursor, setCursor] = useState(0);
   const [help, setHelp] = useState(false);
 
@@ -26,8 +32,9 @@ export default function Intro({ hasInvite, onSolo, onFriends }: Props) {
       if (i === 0) onSolo();
       if (i === 1) onFriends();
       if (i === 2) setHelp(true);
+      if (i === 3) onReplay();
     },
-    [onSolo, onFriends],
+    [onSolo, onFriends, onReplay],
   );
 
   const start = useCallback(() => {
@@ -73,9 +80,11 @@ export default function Intro({ hasInvite, onSolo, onFriends }: Props) {
       <div className="arcade">
         <div className="scanlines" aria-hidden />
         <div className="hud">
-          <span>1P READY</span>
-          <span>HI-SCORE 999 SMILES</span>
-          <span>{hasInvite ? "INVITE FOUND" : "CREDIT 01"}</span>
+          <span>{hasInvite ? "INVITE FOUND" : "1P READY"}</span>
+          <span>
+            HI-SCORE <b className="hud-score">{String(stats?.smiles ?? 0).padStart(4, "0")}</b> SMILES
+          </span>
+          <span>STRIPS {String(stats?.strips ?? 0).padStart(2, "0")}</span>
         </div>
 
         <div className="logo">
@@ -131,7 +140,8 @@ export default function Intro({ hasInvite, onSolo, onFriends }: Props) {
                 friends.
               </li>
               <li>
-                <b>Choose a theme.</b> Each theme changes the filter, colours, and stickers on your strip.
+                <b>Choose a theme and a face filter.</b> Themes change the whole booth, the colours, and the
+                stickers on your strip. Face filters follow your face, like kitty ears or heart eyes.
               </li>
               <li>
                 <b>Set the timer.</b> Off, 3, 5, or 10 seconds. Pick how many shots you want in the strip.
@@ -140,7 +150,7 @@ export default function Intro({ hasInvite, onSolo, onFriends }: Props) {
                 <b>Hit SNAP</b> (or press space). Everyone in the booth gets the same countdown.
               </li>
               <li>
-                <b>Download your strip</b> and post it everywhere.
+                <b>Get a share link</b> or download your strip and post it everywhere.
               </li>
             </ol>
             <button className="btn btn-primary" onClick={() => setHelp(false)}>

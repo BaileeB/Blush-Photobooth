@@ -16,9 +16,10 @@ export type RoomMessage =
   | { type: "full" }
   | { type: "theme"; id: string }
   | { type: "shoot"; timer: number; shots: number }
-  | { type: "name"; name: string };
+  | { type: "name"; name: string; face?: string }
+  | { type: "face"; id: string };
 
-export type Remote = { id: string; name: string; stream?: MediaStream };
+export type Remote = { id: string; name: string; face?: string; stream?: MediaStream };
 
 export type RoomStatus = "idle" | "connecting" | "ready" | "error";
 
@@ -44,6 +45,7 @@ export function useRoom({ onMessage, getTheme }: Options) {
   const calls = useRef(new Map<string, MediaConnection>());
   const localStream = useRef<MediaStream | null>(null);
   const myName = useRef("");
+  const myFace = useRef("none");
   const hostRef = useRef(false);
   const msgRef = useRef(onMessage);
   const themeRef = useRef(getTheme);
@@ -90,7 +92,7 @@ export function useRoom({ onMessage, getTheme }: Options) {
         conns.current.set(conn.peer, conn);
         const name = (conn.metadata as { name?: string } | undefined)?.name;
         upsert(conn.peer, name ? { name } : {});
-        conn.send({ type: "name", name: myName.current } satisfies RoomMessage);
+        conn.send({ type: "name", name: myName.current, face: myFace.current } satisfies RoomMessage);
         if (hostRef.current) {
           const others = [...conns.current.keys()].filter((id) => id !== conn.peer);
           conn.send({ type: "welcome", peers: others, theme: themeRef.current() } satisfies RoomMessage);
@@ -98,7 +100,8 @@ export function useRoom({ onMessage, getTheme }: Options) {
       });
       conn.on("data", (raw) => {
         const msg = raw as RoomMessage;
-        if (msg.type === "name") upsert(conn.peer, { name: msg.name });
+        if (msg.type === "name") upsert(conn.peer, { name: msg.name, face: msg.face ?? "none" });
+        if (msg.type === "face") upsert(conn.peer, { face: msg.id });
         if (msg.type === "full") {
           setError("That booth is full. Max 4 friends per booth.");
           setStatus("error");
@@ -213,9 +216,18 @@ export function useRoom({ onMessage, getTheme }: Options) {
     });
   }, []);
 
+  /** Tells everyone which face filter you're wearing. */
+  const setFace = useCallback(
+    (id: string) => {
+      myFace.current = id;
+      broadcast({ type: "face", id });
+    },
+    [broadcast],
+  );
+
   useEffect(() => () => peerRef.current?.destroy(), []);
 
-  return { status, code, error, isHost, remotes, host, join, leave, broadcast };
+  return { status, code, error, isHost, remotes, host, join, leave, broadcast, setFace };
 }
 
 function friendlyError(err: unknown) {

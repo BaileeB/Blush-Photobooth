@@ -1,4 +1,5 @@
 import type { Deco, Theme } from "./themes";
+import { drawFaceFilters } from "./faces";
 
 export const FRAME_W = 800;
 export const FRAME_H = 600;
@@ -83,6 +84,7 @@ export function captureFrame(videos: HTMLVideoElement[], theme: Theme): HTMLCanv
     if (cell) drawCover(ctx, v, cell.x, cell.y, cell.w, cell.h, true);
   });
   ctx.filter = "none";
+  drawFaceFilters(ctx, videos, cells);
   // thin dividers between friends
   if (videos.length > 1) {
     ctx.strokeStyle = theme.frame;
@@ -271,7 +273,7 @@ export function buildStrip({ frames, theme, names, titleFont, bodyFont }: StripO
   ctx.fillText(who ? `${who}  ·  ${date}` : date, W / 2, fy + 112);
   ctx.font = `500 20px ${bodyFont}`;
   ctx.globalAlpha = 0.75;
-  ctx.fillText(`${theme.name} edition`, W / 2, fy + 146);
+  ctx.fillText(theme.stripLabel, W / 2, fy + 146);
   ctx.globalAlpha = 1;
 
   return c.toDataURL("image/png");
